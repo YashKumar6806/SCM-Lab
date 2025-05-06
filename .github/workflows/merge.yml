@@ -1,0 +1,43 @@
+name: Auto Merge Pull Request
+
+on:
+  pull_request:
+    types:
+      - labeled
+      - synchronize
+      - opened
+      - reopened
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Git
+        uses: actions/setup-git@v2
+
+      - name: Check for required status checks
+        id: check_status
+        run: |
+          PR_STATUS=$(curl -s \
+            -H "Authorization: token ${{secrets.GITHUB_TOKEN}}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{github.repository}}/pulls/${{github.event.pull_request.number}}/reviews")
+
+          echo "PR status: $PR_STATUS"
+          if [[ "$PR_STATUS" != *"APPROVED"* ]]; then
+            echo "Pull request has not been approved"
+            exit 1
+          fi
+
+      - name: Auto merge pull request
+        if: success()
+        run: |
+          curl -X PUT \
+            -H "Authorization: token ${{secrets.GITHUB_TOKEN}}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{"commit_title": "Auto-merge PR", "merge_method": "merge"}' \
+            "https://api.github.com/repos/${{github.repository}}/pulls/${{github.event.pull_request.number}}/merge"
