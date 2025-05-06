@@ -16,9 +16,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Git
-        uses: actions/setup-git@v2
-
       - name: Check for required status checks
         id: check_status
         run: |
